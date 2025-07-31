@@ -7,9 +7,9 @@ import os
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from azure.search.documents import SearchClient
-from azure.core.credentials import AzureKeyCredential
+from azure.identity import ClientSecretCredential
 
-# Enhanced Azure AI Search Integration with proper error handling
+# Enhanced Azure AI Search Integration with Azure AD Service Principal
 def search_expense_policy(query: str, category: Optional[str] = None, tool_context=None) -> dict:
     """
     Search the Azure AI Search knowledge base for expense policy information.
@@ -25,22 +25,31 @@ def search_expense_policy(query: str, category: Optional[str] = None, tool_conte
     try:
         # Get configuration from environment
         search_endpoint = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
-        api_key = os.getenv("AZURE_AI_SEARCH_KEY") 
+        client_id = os.getenv("AZURE_CLIENT_ID") 
+        client_secret = os.getenv("AZURE_CLIENT_SECRET")
+        tenant_id = os.getenv("AZURE_TENANT_ID")
         index_name = os.getenv("AZURE_AI_SEARCH_INDEX", "expense-policy-index")
         
-        if not search_endpoint or not api_key:
+        if not search_endpoint or not client_id or not client_secret or not tenant_id:
             return {
                 "status": "error",
-                "message": "Azure AI Search not configured. Please set AZURE_AI_SEARCH_ENDPOINT and AZURE_AI_SEARCH_KEY",
+                "message": "Azure AI Search not configured. Please set AZURE_AI_SEARCH_ENDPOINT, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID",
                 "policy_excerpts": [],
                 "sources": []
             }
         
-        # Use Azure SDK for better error handling and performance
+        # Create Azure AD credential using Service Principal
+        credential = ClientSecretCredential(
+            tenant_id=tenant_id,
+            client_id=client_id,
+            client_secret=client_secret
+        )
+        
+        # Use Azure SDK with Azure AD authentication
         search_client = SearchClient(
             endpoint=search_endpoint,
             index_name=index_name,
-            credential=AzureKeyCredential(api_key)
+            credential=credential
         )
         
         # Build search parameters
