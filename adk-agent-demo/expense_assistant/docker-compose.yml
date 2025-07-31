@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  expense-assistant:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - AZURE_POSTGRES_CONNECTION_STRING=${AZURE_POSTGRES_CONNECTION_STRING}
+      - AZURE_AI_SEARCH_ENDPOINT=${AZURE_AI_SEARCH_ENDPOINT}
+      - AZURE_AI_SEARCH_KEY=${AZURE_AI_SEARCH_KEY}
+      - GOOGLE_GENAI_USE_VERTEXAI=False
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=expense_sessions
+      - POSTGRES_USER=adk_user
+      - POSTGRES_PASSWORD=secure_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
